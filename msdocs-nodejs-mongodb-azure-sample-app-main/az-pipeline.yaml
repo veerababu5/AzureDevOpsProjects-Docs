@@ -1,0 +1,50 @@
+
+
+trigger:
+- none
+
+pool:
+  name: 'Agent-Pool'
+  demands:
+    - agent.name -equals Agent-1
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSource: 'spec'
+    versionSpec: '20'
+
+- task: Npm@1
+  inputs:
+    command: 'install'
+    workingDir: '.'
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
+    includeRootFolder: true
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/cd.zip'
+    replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/cd.zip'
+    ArtifactName: 'Artifact'
+    publishLocation: 'Container'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'svc-principal'
+    appType: 'webAppLinux'
+    WebAppName: 'mongodbnodejs'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/cd.zip'
+    RuntimeStack: 'NODE|18-lts'
+    StartupCommand: 'cd a && npm start'
